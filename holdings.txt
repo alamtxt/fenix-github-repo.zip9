@@ -1,0 +1,5 @@
+# Apne holdings ke NSE symbols yahan likho – ek line me ek (bina .NS ke).
+# Jis holding par Strong/Good SELL signal banega, Telegram par alag "Holdings alert" aayega.
+# Line ke shuru me # ho to wo comment hai. Udaharan:
+# RELIANCE
+# HDFCBANK

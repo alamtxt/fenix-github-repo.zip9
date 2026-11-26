@@ -1,0 +1,12 @@
+{
+  "topN": 5,
+  "onlyStrong": false,
+  "minLiquidityCr": 5,
+  "mute": [],
+  "capital": 100000,
+  "riskPct": 1,
+  "autoPause": true,
+  "pauseMinClosed": 50,
+  "sendMorning": true,
+  "sendWeekly": true
+}
