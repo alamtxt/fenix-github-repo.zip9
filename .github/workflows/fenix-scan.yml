@@ -42,13 +42,15 @@ jobs:
         env:
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          YAHOO_PROXY: ${{ secrets.YAHOO_PROXY }}
+          YAHOO_PROXY_KEY: ${{ secrets.YAHOO_PROXY_KEY }}
         run: node scan.mjs --mode=${{ steps.m.outputs.mode }}
       - name: Data save (commit)
         if: success()
         run: |
           git config user.name "fenix-bot"
           git config user.email "fenix-bot@users.noreply.github.com"
-          git add data docs
+          git add -A data docs 2>/dev/null || git add -A data
           git diff --cached --quiet || (git commit -m "data update ${{ steps.m.outputs.mode }}" && git pull --rebase && git push)
       - name: Fail alert
         if: (failure() || cancelled()) && steps.m.outputs.mode != 'intraday'
