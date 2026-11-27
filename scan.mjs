@@ -1,7 +1,7 @@
 // scan.mjs v3 – modes: close | morning | weekly | recheck | fail   (--selftest = nakli data, Telegram nahi)
 import fs from 'node:fs';import os from 'node:os';
 import {fin,ISTd,ISTm,isWeekday,sleep,rd,wr,esc,CFG,VERSION,IND} from './core.mjs';
-import {SELF,getBars,one,validate,trimPartial,regime,enrich,stats,setDeadline,pastDeadline} from './data.mjs';
+import {SELF,getBars,one,validate,trimPartial,regime,enrich,stats,setDeadline,pastDeadline,yurl,yhead,viaProxy} from './data.mjs';
 import {evalDir,pickTop} from './signals.mjs';
 import {resolve,resolveIntra,status,agg,ledgerOf,buildDash,dashHTML,archiveMonth,drift} from './book.mjs';
 import {closeMsg,morningMsg,weeklyMsg,holdMsg} from './msgs.mjs';
@@ -85,8 +85,8 @@ async function weekly(){if(CFG.sendWeekly===false)return;const H=rd(DATA+'/picks
 async function recheck(){const H=rd(DATA+'/picks.json',[]),done=H.filter(h=>h.res!=null),st=status(done),dr=drift(done),ar=archiveMonth(DATA,H);
   const msg=`🔁 <b>Fenix Pro – mahine ka re-check</b>\nStatus: <b>${st.s}</b> – ${esc(st.why)}\nClosed picks: ${st.n}${st.n?`, win ${st.win.toFixed(0)}% (Wilson ${st.lb.toFixed(0)}–${st.ub.toFixed(0)}%), avg ${st.avg.toFixed(2)}%`:''}\n${dr?`Pichle 30 vs purane: win ${dr.recent.win.toFixed(0)}% vs ${dr.older.win.toFixed(0)}% ${dr.worse?'⚠ drift (kharab)':'✔ stable'}`:'Drift check ke liye 60+ closed picks chahiye.'}\n${ar?'🗄 Is mahine ka backup data/archive me rakha.':''}\n\nAgar status PAUSED/drift dikhe to picks par bharosa kam rakho; thresholds config.json me badal sakte ho.`;
   console.log(plain(msg));summary(msg);await tg(msg)}
-async function diag(){const out=[];for(const h of ['query1.finance.yahoo.com','query2.finance.yahoo.com']){for(const s of ['RELIANCE.NS','^NSEI']){const t=Date.now();try{const u='https://'+h+'/v8/finance/chart/'+encodeURIComponent(s)+'?interval=1d&range=1mo';const r=await fetch(u,{headers:{'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36'},signal:AbortSignal.timeout(15000)});let n='';if(r.ok){const j=await r.json();n=' candles='+((j.chart.result[0].timestamp||[]).length)}out.push(`${h} ${s}: HTTP ${r.status}${n} (${Date.now()-t}ms)`)}catch(e){out.push(`${h} ${s}: ERROR ${e.name||e.message} (${Date.now()-t}ms)`)}}}
-  const msg='🩺 <b>Fenix Pro diag</b> v'+VERSION+'\n'+out.map(esc).join('\n')+'\n\n200 + candles = theek. 429/403 = Yahoo GitHub ko rok raha hai. ERROR = network.';console.log(plain(msg));summary(msg);await tg(msg)}
+async function diag(){const out=[];for(const h of ['query1.finance.yahoo.com','query2.finance.yahoo.com']){for(const s of ['RELIANCE.NS','^NSEI']){const t=Date.now();try{const u=yurl(h,'/v8/finance/chart/'+encodeURIComponent(s)+'?interval=1d&range=1mo');const r=await fetch(u,{headers:yhead(),signal:AbortSignal.timeout(15000)});let n='';if(r.ok){const j=await r.json();n=' candles='+((j.chart.result[0].timestamp||[]).length)}out.push(`${h} ${s}: HTTP ${r.status}${n} (${Date.now()-t}ms)`)}catch(e){out.push(`${h} ${s}: ERROR ${e.name||e.message} (${Date.now()-t}ms)`)}}}
+  const msg='🩺 <b>Fenix Pro diag</b> v'+VERSION+(viaProxy?' (proxy ke raaste)':' (seedha Yahoo)')+'\n'+out.map(esc).join('\n')+'\n\n200 + candles = theek. 429/403 = Yahoo GitHub ko rok raha hai. ERROR = network.';console.log(plain(msg));summary(msg);await tg(msg)}
 async function fail(){await tg('❌ <b>Fenix Pro scan fail hua</b>\nGitHub → Actions tab me run kholkar fail hue step ka log dekho. Aksar Yahoo ne rok diya hota hai; thodi der baad Run workflow se dobara chalao.')}
 const run={close,morning,weekly,recheck,fail,diag,intraday}[MODE]||close;
 run().catch(async e=>{console.error(e);try{if(!SELF&&MODE!='fail')await tg('❌ Fenix Pro ('+MODE+') error: '+esc(String(e.message||e).slice(0,200)))}catch(x){}process.exit(1)});

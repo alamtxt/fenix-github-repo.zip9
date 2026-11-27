@@ -2,14 +2,18 @@
 import {fin,ISTd,sleep,CFG,IND} from './core.mjs';
 export const SELF=process.argv.includes('--selftest');
 const UA={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36'};
+const PX=(process.env.YAHOO_PROXY||'').replace(/\/$/,''),PK=process.env.YAHOO_PROXY_KEY||'';
+export const yurl=(host,path)=>PX?PX+path:'https://'+host+path;
+export const yhead=()=>PK?{...UA,'x-key':PK}:UA;
+export const viaProxy=!!PX;
 export const stats={primary:0,backup:0,fail:0,retry429:0,codes:{}};
 const code=k=>stats.codes[k]=(stats.codes[k]||0)+1;
 let DEADLINE=Infinity;export const setDeadline=ms=>{DEADLINE=ms};export const pastDeadline=()=>Date.now()>DEADLINE;
 export function synth(sym,n=1250){let seed=[...sym].reduce((s,c)=>s+c.charCodeAt(0),7);const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;const out=[];let p=100;const drift=(sym.charCodeAt(0)%3-1)*.0012;
   for(let k=0;k<n;k++){const o=p*(1+(rnd()-.5)*.004);p=o*(1+.0004+drift+(rnd()-.5)*.025);out.push({t:Math.floor((Date.now()-(n-k)*864e5)/1000),o,h:Math.max(o,p)*1.004,l:Math.min(o,p)*.996,c:p,v:1e6*(1+rnd())})}return out}
-export async function one(host,sym,range){const u='https://'+host+'/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range='+range;
+export async function one(host,sym,range){const u=yurl(host,'/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range='+range);
   for(let a=0;a<2;a++){if(pastDeadline())throw new Error('time-budget');let r;
-    try{r=await fetch(u,{headers:UA,signal:AbortSignal.timeout(15000)})}catch(e){code('net:'+(e.name||'err'));throw e}
+    try{r=await fetch(u,{headers:yhead(),signal:AbortSignal.timeout(15000)})}catch(e){code('net:'+(e.name||'err'));throw e}
     code(String(r.status));
     if(r.status==429){stats.retry429++;await sleep(2000*(a+1));continue}
     if(!r.ok)throw new Error('HTTP '+r.status);
@@ -36,7 +40,7 @@ export function trimPartial(bars,istMin,today){ // aaj ka adhura candle hatao (3
   if(bars.length&&ISTd(bars[bars.length-1].t*1000)===today&&istMin<940)return bars.slice(0,-1);return bars}
 export async function regime(nifty){const b=nifty||await getBars('^NSEI','2y');if(!b||b.length<220)return null;const R=IND(b),n=R.n-1,c=R.c[n],e50=R.e50[n],e200=R.e200[n],adx=R.adx[n];
   return c>e50&&e50>e200&&adx>=20?'🟢 Nifty UPTREND':c<e50&&e50<e200&&adx>=20?'🔴 Nifty DOWNTREND':'🟡 Nifty SIDEWAYS'}
-export async function enrich(names){const out={};if(!names.length)return out;
+export async function enrich(names){const out={};if(!names.length||PX)return out; // proxy se sector/results nahi
   if(SELF){names.forEach((n,i)=>{out[n]={sector:i%2?'Financials':'IT',earn:i==1?4:null}});return out}
   try{const r0=await fetch('https://fc.yahoo.com',{redirect:'manual',headers:UA});const ck=(r0.headers.getSetCookie?r0.headers.getSetCookie():[]).map(x=>x.split(';')[0]).join('; ');
     const cr=await (await fetch('https://query1.finance.yahoo.com/v1/test/getcrumb',{headers:{...UA,Cookie:ck}})).text();if(!cr||cr.length>40||/<|Too Many/.test(cr))throw new Error('crumb nahi mila');

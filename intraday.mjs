@@ -1,6 +1,6 @@
 // intraday.mjs – 5-minute candles par breakout/breakdown alerts (sirf analysis, order nahi)
 import {fin,ISTd,f2,esc,CFG} from './core.mjs';
-import {SELF} from './data.mjs';
+import {SELF,yurl,yhead} from './data.mjs';
 const UA={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36'};
 const dayStart=d=>Date.parse(d+'T03:45:00Z')/1000; // 9:15 IST
 export function synth5(sym,today=ISTd()){let seed=[...sym].reduce((s,c)=>s+c.charCodeAt(0),11);const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;
@@ -12,7 +12,7 @@ export function synth5(sym,today=ISTd()){let seed=[...sym].reduce((s,c)=>s+c.cha
 export async function fetch5(sym,now=Date.now()){
   if(SELF)return synth5(sym);
   for(const h of ['query1.finance.yahoo.com','query2.finance.yahoo.com']){
-    try{const r=await fetch('https://'+h+'/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=5m&range=5d',{headers:UA,signal:AbortSignal.timeout(12000)});if(!r.ok)continue;
+    try{const r=await fetch(yurl(h,'/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=5m&range=5d'),{headers:yhead(),signal:AbortSignal.timeout(12000)});if(!r.ok)continue;
       const j=await r.json(),q=j.chart.result[0],z=q.indicators.quote[0];
       let b=(q.timestamp||[]).map((t,i)=>({t,o:z.open[i],h:z.high[i],l:z.low[i],c:z.close[i],v:z.volume[i]||0})).filter(x=>[x.h,x.l,x.c].every(fin)&&(x.o=fin(x.o)?x.o:x.c,true));
       if(b.length&&b[b.length-1].t*1000+300000>now)b=b.slice(0,-1); // adhura candle nahi
