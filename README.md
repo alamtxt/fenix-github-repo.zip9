@@ -13,8 +13,17 @@ Roz market close ke baad ~550 NSE stocks scan → Telegram par Top 5 upar / Top 
 - **Options** (`config.json`): topN, onlyStrong, mute, minLiquidityCr, capital, riskPct (position size har pick par), autoPause, sendMorning/sendWeekly.
 - `events.json`: RBI/Budget jaisi tareekh daalo – 2 din ke andar ho to pick par ⚠ dikhega. `holdings.txt`: aapke stocks par SELL signal aaye to alert. `mute.txt`: kuch stocks hamesha skip.
 
+## Intraday alerts (naya)
+- Market ghanton me (9:35–14:45 IST) har ~15 min par ~120 stocks ke 5-min candles check hote hain. Breakout/breakdown par Telegram alert: **BUY/SELL, price, SL, T1, size aur "kyu:" (italic, chhote letters me wajah)**.
+- Rule: pehle 15 min ki range / kal ka high-low / 5-din ka high-low toote **aur** volume normal se ≥1.5x **aur** price VWAP ke sahi taraf. Alert ek stock+direction par din me ek hi baar.
+- Kis par chalega: `intraday.txt` (top 100), `watch.txt` (aapke stocks), holdings, aur raat ke Top 5. `mute.txt` wale skip.
+- **Seema:** GitHub cron 5–30 min late ya kabhi skip ho sakta hai; ye tick-by-tick live nahi hai. Alert ko order signal na samjho; broker app me price/volume dekho.
+- Har alert din ke close par jaanch hota hai (kitna sahi nikla) aur close/weekly message me dikhta hai. 40 closed alerts ke baad edge na dikhe to intraday alert apne-aap pause (sirf log).
+- Private repo me GitHub ke free 2000 min/mahine lagte hain: intraday ~700–900 min khata hai. Public repo me limit nahi. Kam chahiye to workflow me `*/15` ko `*/30` kar do.
+- Config (`config.json`): intradayVol, intradayMaxAlerts, intradayMax, intradayLast.
+
 ## Upload kaise karein (mobile)
-1. GitHub repo kholo → **Add file → Upload files**. ZIP extract karke **saari files** (folder nahi, files) daalo: `scan.mjs core.mjs data.mjs signals.mjs book.mjs msgs.mjs tests.mjs config.json holidays.json events.json symbols.txt holdings.txt mute.txt README.md`. Purani `scan.mjs`/`picks.json` replace ho jayengi (root wali `picks.json` delete kar do).
+1. GitHub repo kholo → **Add file → Upload files**. ZIP extract karke **saari files** (folder nahi, files) daalo: `scan.mjs core.mjs data.mjs signals.mjs book.mjs msgs.mjs intraday.mjs intraday.txt watch.txt tests.mjs config.json holidays.json events.json symbols.txt holdings.txt mute.txt README.md`. Purani `scan.mjs`/`picks.json` replace ho jayengi (root wali `picks.json` delete kar do).
 2. `data` folder: **Add file → Create new file** → naam `data/picks.json` → andar `[]` → Commit.
 3. Workflows (naam me **dot** zaroori): **Create new file** → naam `.github/workflows/fenix-scan.yml` → `WORKFLOW_COPY_fenix-scan.yml.txt` ka poora text paste → Commit. Dobara `.github/workflows/tests.yml` (WORKFLOW_COPY_tests.yml.txt) aur `.github/dependabot.yml` (WORKFLOW_COPY_dependabot.yml.txt).
 4. **Settings → Secrets and variables → Actions**: `TELEGRAM_BOT_TOKEN` (zaroori). `TELEGRAM_CHAT_ID` optional (default aapka id).

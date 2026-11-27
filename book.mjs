@@ -5,6 +5,9 @@ export function resolve(H,map,nifty){ // pichle picks ka agle din ka asli result
   const nd=d=>{if(!nifty)return null;const k=nifty.findIndex(x=>ISTd(x.t*1000)>d);return k>0?{r:(nifty[k].c/nifty[k-1].c-1)*100}:null};
   H.forEach(h=>{if(h.res!=null)return;const b=map[h.n];if(!b)return;const k=b.findIndex(x=>ISTd(x.t*1000)>h.date);if(k<0)return;
     h.res=h.dir*(b[k].c/h.close-1)*100;h.rd=ISTd(b[k].t*1000);const m=nd(h.date);if(m){h.bm=m.r;h.ex=h.res-h.dir*m.r}});return H}
+export function resolveIntra(IL,map){ // intraday alert ka din ke close tak ka natija (aur SL/T1 touch)
+  IL.forEach(h=>{if(h.res!=null)return;const bars=map[h.n];if(!bars)return;const b=bars.find(x=>ISTd(x.t*1000)===h.date);if(!b)return;
+    h.res=h.dir*(b.c/h.price-1)*100;const sl=h.dir>0?b.l<=h.stop:b.h>=h.stop,tg=h.dir>0?b.h>=h.t1:b.l<=h.t1;h.hit=sl&&tg?'dono':sl?'SL':tg?'T1':'-'});return IL}
 export function simTrade(p,bars,cfg=CFG,maxHold=10){ // paper trade: next open entry, gap-aware SL/T1, time exit, slippage+cost
   if(!fin(p.stop)||!fin(p.t1))return{status:'nolevels'};
   const k=bars.findIndex(x=>ISTd(x.t*1000)>p.date);if(k<0)return{status:'pending'};

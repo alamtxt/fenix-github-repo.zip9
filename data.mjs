@@ -2,18 +2,23 @@
 import {fin,ISTd,sleep,CFG,IND} from './core.mjs';
 export const SELF=process.argv.includes('--selftest');
 const UA={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 Chrome/120 Safari/537.36'};
-export const stats={primary:0,backup:0,fail:0,retry429:0};
+export const stats={primary:0,backup:0,fail:0,retry429:0,codes:{}};
+const code=k=>stats.codes[k]=(stats.codes[k]||0)+1;
+let DEADLINE=Infinity;export const setDeadline=ms=>{DEADLINE=ms};export const pastDeadline=()=>Date.now()>DEADLINE;
 export function synth(sym,n=1250){let seed=[...sym].reduce((s,c)=>s+c.charCodeAt(0),7);const rnd=()=>(seed=(seed*16807)%2147483647)/2147483647;const out=[];let p=100;const drift=(sym.charCodeAt(0)%3-1)*.0012;
   for(let k=0;k<n;k++){const o=p*(1+(rnd()-.5)*.004);p=o*(1+.0004+drift+(rnd()-.5)*.025);out.push({t:Math.floor((Date.now()-(n-k)*864e5)/1000),o,h:Math.max(o,p)*1.004,l:Math.min(o,p)*.996,c:p,v:1e6*(1+rnd())})}return out}
-async function one(host,sym,range){const u='https://'+host+'/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range='+range;
-  for(let a=0;a<3;a++){const r=await fetch(u,{headers:UA});
-    if(r.status==429){stats.retry429++;await sleep(1500*(a+1)**2);continue}
+export async function one(host,sym,range){const u='https://'+host+'/v8/finance/chart/'+encodeURIComponent(sym)+'?interval=1d&range='+range;
+  for(let a=0;a<2;a++){if(pastDeadline())throw new Error('time-budget');let r;
+    try{r=await fetch(u,{headers:UA,signal:AbortSignal.timeout(15000)})}catch(e){code('net:'+(e.name||'err'));throw e}
+    code(String(r.status));
+    if(r.status==429){stats.retry429++;await sleep(2000*(a+1));continue}
     if(!r.ok)throw new Error('HTTP '+r.status);
     const j=await r.json(),q=j.chart.result[0],z=q.indicators.quote[0];
     return (q.timestamp||[]).map((t,i)=>({t,o:z.open[i],h:z.high[i],l:z.low[i],c:z.close[i],v:z.volume[i]||0}))}
   throw new Error('429 baar-baar')}
 export async function getBars(sym,range='5y'){
   if(SELF)return synth(sym);
+  if(pastDeadline())return null;
   try{const b=await one('query1.finance.yahoo.com',sym,range);stats.primary++;b.src='primary';return b}catch(e){}
   if(CFG.useBackupHost!==false){try{const b=await one('query2.finance.yahoo.com',sym,range);stats.backup++;b.src='backup';return b}catch(e){}}
   stats.fail++;return null}

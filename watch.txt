@@ -1,0 +1,1 @@
+# yahan apne khaas stocks likho (ek line me ek, NSE symbol, bina .NS). Inpar bhi intraday alert aayega.

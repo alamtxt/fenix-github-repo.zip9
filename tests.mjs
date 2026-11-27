@@ -37,3 +37,12 @@ test('resolve: result + benchmark excess',()=>{
   const b=mkb([['2026-01-01',100,100,100,100],['2026-01-02',100,100,100,102]]),n=mkb([['2026-01-01',10,10,10,10],['2026-01-02',10,10,10,10.1]]);
   const H=resolve([{date:'2026-01-01',n:'A',dir:1,close:100}],{A:b},n);assert.ok(Math.abs(H[0].res-2)<1e-9);assert.ok(Math.abs(H[0].ex-1)<1e-9)});
 test('evalDir runs on synthetic and has levels',()=>{let got=0;for(const s of ['AAA','BBB','CCC','DDD','EEE','FFF','GGG','HHH']){for(const d of [1,-1]){const r=evalDir(synth(s),d);if(r){got++;assert.ok(fin(r.stop)&&fin(r.t1)&&fin(r.atr))}}}assert.ok(got>=0)});
+
+import {analyze,synth5,alertMsg} from './intraday.mjs';import {ISTd} from './core.mjs';
+test('intraday: synthetic breakout gives alert with reasons; flat gives none',()=>{let buy=0,sell=0,none=0;
+  for(let i=0;i<40;i++){const s=String.fromCharCode(65+i%26)+String.fromCharCode(65+(i*7)%26)+'X',a=analyze(synth5(s));if(!a)none++;else{assert.ok(a.why.length>=3&&a.stop&&a.t1);a.dir>0?buy++:sell++;assert.ok(a.dir>0?a.stop<a.price&&a.t1>a.price:a.stop>a.price&&a.t1<a.price)}}
+  assert.ok(buy>0&&sell>0&&none>0,`buy${buy} sell${sell} none${none}`)});
+test('intraday: no look-ahead, volume gate and message',()=>{const b=synth5('HAL');const a=analyze(b);
+  const lowv=b.map((x,i)=>i==b.length-1||i==b.length-2?{...x,v:1}:x);assert.equal(analyze(lowv),null);
+  if(a){const m=alertMsg('HAL',a,0.2,null);assert.ok(m.includes('kyu:')&&m.includes('<i>'))}
+  assert.equal(analyze(b.slice(0,20)),null)});

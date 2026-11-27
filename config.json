@@ -8,5 +8,11 @@
   "autoPause": true,
   "pauseMinClosed": 50,
   "sendMorning": true,
-  "sendWeekly": true
+  "sendWeekly": true,
+  "intradayVol": 1.5,
+  "intradayMaxAlerts": 6,
+  "intradayMax": 120,
+  "intradayLast": 885,
+  "intradayPauseMin": 40,
+  "budgetMin": 13
 }
